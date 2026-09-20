@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지출 관리 API 연동 실습 — Lee Jae-lim</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0A0C;
+    --paper:#F6F5F1;
+    --amber:#F2871D;
+    --steel:#1B3A5C;
+    --graphite:#3A3A3C;
+    --line:#D8D6D0;
+    --white:#FFFFFF;
+    --danger:#C23B3B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--graphite);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  header{
+    background:var(--ink);
+    color:#EDEAE2;
+    padding:40px 6vw 32px;
+  }
+  header .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin-bottom:12px;
+  }
+  header h1{
+    font-family:'Archivo',sans-serif;
+    font-weight:900;
+    font-size:clamp(26px,4vw,38px);
+    text-transform:uppercase;
+    letter-spacing:-0.01em;
+  }
+  header p{
+    margin-top:10px;
+    color:#B9B7AE;
+    max-width:640px;
+    font-size:15px;
+  }
+  .back-link{
+    display:inline-block;
+    margin-top:18px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--amber);
+    text-decoration:none;
+    border:1px solid #3A3A3E;
+    padding:6px 12px;
+    border-radius:999px;
+  }
+  .back-link:hover{border-color:var(--amber);}
+
+  main{
+    max-width:900px;
+    margin:0 auto;
+    padding:48px 6vw 80px;
+  }
+  .status-bar{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    padding:10px 14px;
+    border-radius:4px;
+    margin-bottom:28px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .status-ok{background:#E7F3E8;color:#1E6B2E;border:1px solid #BFE0C4;}
+  .status-bad{background:#FBEAEA;color:var(--danger);border:1px solid #F0C5C5;}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
+
+  .config{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:#8C8A80;
+    margin-bottom:32px;
+    padding:12px 14px;
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:4px;
+    word-break:break-all;
+  }
+
+  section{margin-bottom:40px;}
+  h2{
+    font-family:'Archivo',sans-serif;
+    font-weight:700;
+    font-size:20px;
+    color:var(--ink);
+    margin-bottom:16px;
+    padding-bottom:10px;
+    border-bottom:2px solid var(--ink);
+  }
+
+  form{
+    background:var(--white);
+    border:1px solid var(--line);
+    padding:24px;
+    border-radius:4px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+  form .full{grid-column:1 / -1;}
+  label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:#8C8A80;
+    margin-bottom:6px;
+  }
+  input, select{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    background:var(--paper);
+  }
+  input:focus, select:focus{outline:2px solid var(--amber);outline-offset:1px;}
+  button{
+    grid-column:1 / -1;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:12px 20px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    border-radius:3px;
+    cursor:pointer;
+    margin-top:6px;
+  }
+  button:hover{background:var(--amber);color:var(--ink);}
+  button:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .row{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:14px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+  }
+  .row .info{flex:1;}
+  .row .cat{
+    font-weight:600;
+    color:var(--ink);
+    font-size:15px;
+  }
+  .row .meta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:#8C8A80;
+    margin-top:3px;
+  }
+  .amount{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px;
+    font-weight:500;
+  }
+  .amount.expense{color:var(--danger);}
+  .amount.income{color:#1E6B2E;}
+  .del-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:#8C8A80;
+    padding:6px 10px;
+    font-size:11px;
+    border-radius:3px;
+    cursor:pointer;
+    margin:0;
+  }
+  .del-btn:hover{border-color:var(--danger);color:var(--danger);background:none;}
+  .empty{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:#8C8A80;
+    text-align:center;
+    padding:32px;
+    background:var(--white);
+    border:1px dashed var(--line);
+    border-radius:4px;
+  }
+  .msg{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    margin-top:10px;
+  }
+  .msg.err{color:var(--danger);}
+  .msg.ok{color:#1E6B2E;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">클라우드컴퓨팅실습 · 3주차 과제</div>
+  <h1>프론트엔드–백엔드 연동 실습</h1>
+  <p>FastAPI로 만든 지출 관리 API(Render 배포)를 이 페이지에서 호출해 등록·조회·삭제를 테스트합니다.</p>
+  <a class="back-link" href="index.html">← 소개 페이지로 돌아가기</a>
+</header>
+
+<main>
+  <div id="statusBar" class="status-bar status-bad">
+    <span class="status-dot"></span>
+    <span id="statusText">백엔드 연결 확인 중...</span>
+  </div>
+
+  <div class="config mono">
+    Backend API: <span id="apiUrlDisplay"></span>
+  </div>
+
+  <section>
+    <h2>새 거래 등록</h2>
+    <form id="createForm">
+      <div>
+        <label>금액 (amount)</label>
+        <input type="number" id="amount" min="1" step="1" placeholder="12000" required>
+      </div>
+      <div>
+        <label>구분 (type)</label>
+        <select id="type" required>
+          <option value="expense">지출 (expense)</option>
+          <option value="income">수입 (income)</option>
+        </select>
+      </div>
+      <div>
+        <label>카테고리 (category)</label>
+        <input type="text" id="category" placeholder="식비" required>
+      </div>
+      <div>
+        <label>날짜 (occurred_on)</label>
+        <input type="date" id="occurred_on" required>
+      </div>
+      <div class="full">
+        <label>설명 (description, 선택)</label>
+        <input type="text" id="description" placeholder="점심 식사">
+      </div>
+      <button type="submit" id="submitBtn">POST /transactions 로 등록</button>
+    </form>
+    <div id="createMsg" class="msg"></div>
+  </section>
+
+  <section>
+    <h2>거래 목록 <span class="mono" style="font-size:13px;color:#8C8A80;">GET /transactions</span></h2>
+    <div id="list" class="list">
+      <div class="empty">불러오는 중...</div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ⚠️ Render에 백엔드를 배포한 뒤, 아래 주소를 본인의 실제 배포 URL로 바꾸세요.
+// 예: const API_BASE = "https://expense-api-abcd.onrender.com";
+const API_BASE = "https://YOUR-RENDER-APP.onrender.com";
+
+document.getElementById("apiUrlDisplay").textContent = API_BASE;
+
+const statusBar = document.getElementById("statusBar");
+const statusText = document.getElementById("statusText");
+const listEl = document.getElementById("list");
+const createForm = document.getElementById("createForm");
+const createMsg = document.getElementById("createMsg");
+const submitBtn = document.getElementById("submitBtn");
+
+async function checkHealth() {
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    if (!res.ok) throw new Error("bad status");
+    statusBar.className = "status-bar status-ok";
+    statusText.textContent = "백엔드 연결됨 (GET /health → 200 OK)";
+    return true;
+  } catch (e) {
+    statusBar.className = "status-bar status-bad";
+    statusText.textContent = "백엔드에 연결할 수 없습니다. 위 URL이 본인의 Render 주소로 바뀌었는지 확인하세요.";
+    return false;
+  }
+}
+
+async function loadTransactions() {
+  try {
+    const res = await fetch(`${API_BASE}/transactions`);
+    if (!res.ok) throw new Error("불러오기 실패");
+    const data = await res.json();
+    renderList(data);
+  } catch (e) {
+    listEl.innerHTML = `<div class="empty">목록을 불러오지 못했습니다. 백엔드 URL을 확인하세요.</div>`;
+  }
+}
+
+function renderList(items) {
+  if (!items.length) {
+    listEl.innerHTML = `<div class="empty">등록된 거래가 없습니다. 위 폼으로 하나 등록해보세요.</div>`;
+    return;
+  }
+  listEl.innerHTML = items.map(t => `
+    <div class="row">
+      <div class="info">
+        <div class="cat">${t.category}${t.description ? " · " + t.description : ""}</div>
+        <div class="meta">#${t.id} · ${t.occurred_on} · ${t.type}</div>
+      </div>
+      <div class="amount ${t.type}">${t.type === "expense" ? "-" : "+"}${Number(t.amount).toLocaleString()}원</div>
+      <button class="del-btn" onclick="deleteTransaction(${t.id})">삭제</button>
+    </div>
+  `).join("");
+}
+
+async function deleteTransaction(id) {
+  try {
+    const res = await fetch(`${API_BASE}/transactions/${id}`, { method: "DELETE" });
+    if (res.status !== 204) throw new Error("삭제 실패");
+    loadTransactions();
+  } catch (e) {
+    alert("삭제에 실패했습니다: " + e.message);
+  }
+}
+
+createForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  submitBtn.disabled = true;
+  createMsg.textContent = "";
+  createMsg.className = "msg";
+
+  const payload = {
+    amount: Number(document.getElementById("amount").value),
+    type: document.getElementById("type").value,
+    category: document.getElementById("category").value,
+    description: document.getElementById("description").value || null,
+    occurred_on: document.getElementById("occurred_on").value,
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/transactions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.status === 201) {
+      createMsg.textContent = "등록 완료 (201 Created)";
+      createMsg.classList.add("ok");
+      createForm.reset();
+      loadTransactions();
+    } else {
+      const err = await res.json();
+      createMsg.textContent = "오류: " + JSON.stringify(err.detail);
+      createMsg.classList.add("err");
+    }
+  } catch (e) {
+    createMsg.textContent = "요청 실패: " + e.message;
+    createMsg.classList.add("err");
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+checkHealth().then(loadTransactions);
+</script>
+
+</body>
+</html>
